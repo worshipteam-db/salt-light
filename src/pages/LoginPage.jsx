@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -11,29 +11,45 @@ export default function LoginPage() {
   const [mode, setMode] = useState('login');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!loading && user) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setMessage('');
+    setIsSubmitting(true);
 
     try {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate('/');
+        navigate('/', { replace: true });
+        return;
+      }
+
+      const { data, error } = await signUp(email, password);
+      if (error) throw error;
+
+      if (data?.session) {
+        navigate('/', { replace: true });
       } else {
-        const { error } = await signUp(email, password);
-        if (error) throw error;
-        setMessage('Check your email to confirm your account, then log in.');
+        setMessage('Account created. Check your email if confirmation is enabled, then log in.');
       }
     } catch (err) {
-      setError(err.message || 'Something went wrong');
+      const msg = err?.message || 'Something went wrong';
+      setError(
+        msg === 'email rate limit exceeded'
+          ? 'Email rate limit exceeded. Turn off email confirmation in Supabase or wait before trying again.'
+          : msg
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -53,7 +69,9 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -64,7 +82,9 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -73,16 +93,22 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-black text-white py-2 font-medium"
+            className="w-full rounded-lg bg-black text-white py-2 font-medium disabled:opacity-60"
+            disabled={isSubmitting}
           >
-            {mode === 'login' ? 'Log In' : 'Sign Up'}
+            {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Sign Up'}
           </button>
         </form>
 
         <button
           type="button"
           className="mt-4 text-sm underline"
-          onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+          onClick={() => {
+            setMode(mode === 'login' ? 'signup' : 'login');
+            setError('');
+            setMessage('');
+          }}
+          disabled={isSubmitting}
         >
           {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Log in'}
         </button>
