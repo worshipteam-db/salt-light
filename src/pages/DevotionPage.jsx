@@ -87,27 +87,30 @@ export default function DevotionPage() {
         total_faith: (currentCharacter.total_faith || 0) + faithToday,
       });
 
-      await db.entities.ActivityLog.create({
-        user_id: user.id,
-        created_by: user.email,
-        action_type: "devotion_completed",
-        source: `Devotion: ${verse}`,
-        amount: xpToday,
-        base_amount: baseXPToday,
-        modifiers: xpModifiers.join(", "),
-        icon: "📖",
-      });
-
-      await db.entities.ActivityLog.create({
-        user_id: user.id,
-        created_by: user.email,
-        action_type: "faith_gained",
-        source: `Devotion: ${verse}`,
-        amount: faithToday,
-        base_amount: baseFaithToday,
-        modifiers: faithModifiers.join(", "),
-        icon: "✨",
-      });
+    await db.entities.ActivityLog.create({
+  user_id: user.id,
+  created_by: user.email,
+  title: `Devotion: ${verse}`,
+  activity_type: "devotion_completed",
+  action_type: "devotion_completed",
+  source: `Devotion: ${verse}`,
+  amount: xpToday,
+  base_amount: baseXPToday,
+  modifiers: xpModifiers.join(", "),
+  icon: "📖",
+});
+await db.entities.ActivityLog.create({
+  user_id: user.id,
+  created_by: user.email,
+  title: `Devotion: ${verse}`,
+  activity_type: "faith_gained",
+  action_type: "faith_gained",
+  source: `Devotion: ${verse}`,
+  amount: faithToday,
+  base_amount: baseFaithToday,
+  modifiers: faithModifiers.join(", "),
+  icon: "✨",
+});
 
       return devotionRow;
     } catch (error) {

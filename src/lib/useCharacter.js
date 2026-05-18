@@ -9,6 +9,8 @@ export async function logActivity({ action_type, source, amount, base_amount, mo
     await db.entities.ActivityLog.create({
       user_id: user.id,
       created_by: user.email,
+      title: source,
+      activity_type: action_type,
       action_type,
       source,
       amount,
