@@ -1,0 +1,72 @@
+{
+  "name": "Devotion",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the devotional (YYYY-MM-DD)"
+    },
+    "bible_verse": {
+      "type": "string",
+      "description": "Selected Bible verse reference (e.g. John 3:16)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "User's devotion notes"
+    },
+    "xp_earned": {
+      "type": "number",
+      "description": "XP awarded for this devotional entry"
+    },
+    "streak_day": {
+      "type": "number",
+      "default": 1,
+      "description": "Which consecutive day this was (for streak tracking)"
+    }
+  },
+  "required": [
+    "date",
+    "bible_verse",
+    "notes"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

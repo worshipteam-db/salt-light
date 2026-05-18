@@ -1,0 +1,81 @@
+{
+  "name": "ActivityLog",
+  "type": "object",
+  "properties": {
+    "action_type": {
+      "type": "string",
+      "enum": [
+        "xp_gained",
+        "faith_gained",
+        "faith_spent",
+        "xp_spent",
+        "item_purchased"
+      ],
+      "description": "Type of action logged"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the action (e.g. 'Goal: Run 5km', 'Devotion', 'Shop: Iron Shield')"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Amount of XP/faith changed"
+    },
+    "base_amount": {
+      "type": "number",
+      "description": "Base amount before modifiers"
+    },
+    "modifiers": {
+      "type": "string",
+      "description": "Description of modifiers applied (e.g. '+8 from Warrior Gauntlets, +5% from Celestial Blade')"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon for display"
+    }
+  },
+  "required": [
+    "action_type",
+    "source",
+    "amount"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

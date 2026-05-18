@@ -1,0 +1,118 @@
+{
+  "name": "Character",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Character name"
+    },
+    "level": {
+      "type": "number",
+      "default": 1,
+      "description": "Current level"
+    },
+    "xp": {
+      "type": "number",
+      "default": 0,
+      "description": "Current XP in this level"
+    },
+    "total_xp": {
+      "type": "number",
+      "default": 0,
+      "description": "Total XP earned lifetime"
+    },
+    "faith": {
+      "type": "number",
+      "default": 0,
+      "description": "Faith currency balance"
+    },
+    "total_faith": {
+      "type": "number",
+      "default": 0,
+      "description": "Total faith ever earned"
+    },
+    "skill_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Available skill points to spend"
+    },
+    "total_skill_points": {
+      "type": "number",
+      "default": 0,
+      "description": "Total skill points ever earned"
+    },
+    "current_job": {
+      "type": "string",
+      "default": "seeker",
+      "description": "Current job ID"
+    },
+    "goals_completed": {
+      "type": "number",
+      "default": 0,
+      "description": "Total goals completed"
+    },
+    "equipped_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Equipped item IDs (max 5)"
+    },
+    "unlocked_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Purchased/unlocked item IDs"
+    },
+    "unlocked_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "All unlocked skill IDs (carry over on job change)"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

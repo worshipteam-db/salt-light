@@ -1,0 +1,95 @@
+{
+  "name": "Goal",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The goal title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Details about the goal"
+    },
+    "timeframe": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "long_term",
+        "boss_fight"
+      ],
+      "description": "Goal timeframe category"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed"
+      ],
+      "default": "active",
+      "description": "Current status"
+    },
+    "xp_reward": {
+      "type": "number",
+      "description": "XP earned on completion"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the goal is due"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When the goal was completed"
+    },
+    "last_reset_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Last date this recurring goal was reset"
+    }
+  },
+  "required": [
+    "title",
+    "timeframe"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
