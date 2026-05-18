@@ -1,1 +1,1 @@
-# salt-light
+# salt-light - first commit
