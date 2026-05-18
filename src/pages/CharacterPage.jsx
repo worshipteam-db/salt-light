@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import db from "@/api/base44Client";
 
 import React, { useState } from "react";
 import { useCharacter } from "@/lib/useCharacter";
@@ -42,7 +42,7 @@ function StatBox({ icon: Icon, label, value, color = "text-primary" }) {
 export default function CharacterPage() {
   const { character, levelInfo, isLoading, createCharacter, toggleEquip, buyEquipment, unlockSkill, changeJob, MAX_EQUIPPED } = useCharacter();
   const queryClient = useQueryClient();
-  const { logout } = useAuth();
+  const { signOut } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
@@ -326,9 +326,9 @@ export default function CharacterPage() {
               <p className="text-sm font-medium">Log Out</p>
               <p className="text-xs text-muted-foreground mt-0.5">Sign out of your account.</p>
             </div>
-            <Button variant="outline" size="sm" className="min-h-[44px] shrink-0" onClick={() => logout(true)}>
-              <LogOut className="w-4 h-4 mr-2" /> Log Out
-            </Button>
+           <Button variant="outline" size="sm" className="min-h-[44px] shrink-0" onClick={() => signOut()}>
+  <LogOut className="w-4 h-4 mr-2" /> Log Out
+</Button>
           </div>
 
           <div className="border-t" />

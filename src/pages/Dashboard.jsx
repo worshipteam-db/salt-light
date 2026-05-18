@@ -1,4 +1,4 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
+import db from "@/api/base44Client";
 
 import React, { useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -172,7 +172,7 @@ export default function Dashboard() {
         <CharacterAvatar character={character} size="lg" />
         <div className="flex-1 space-y-3 text-center sm:text-left">
           <div>
-            <h1 className="font-display text-2xl font-bold">Welcome back, {character.name}!</h1>
+          <h1 className="font-display text-2xl font-bold">Welcome back, {character.name || "Hero"}!</h1>
             <p className="text-muted-foreground text-sm mt-1">
               {todayGoals.length > 0 ?
                 `You have ${todayGoals.length} goal${todayGoals.length > 1 ? "s" : ""} due today` :

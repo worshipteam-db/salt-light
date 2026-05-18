@@ -1,12 +1,14 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
+import db from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
 import { getLevelFromXP, EQUIPMENT, JOB_TREE, calculateSPBonusOnLevelUp } from "@/lib/gameData";
 
 export async function logActivity({ action_type, source, amount, base_amount, modifiers, icon }) {
   try {
+    const user = await db.auth.me();
+
     await db.entities.ActivityLog.create({
+      user_id: user.id,
+      created_by: user.email,
       action_type,
       source,
       amount,
@@ -28,7 +30,7 @@ export function useCharacter() {
     queryKey: ["character"],
     queryFn: async () => {
       const user = await db.auth.me();
-      return db.entities.Character.filter({ created_by: user.email });
+      return db.entities.Character.filter({ user_id: user.id });
     },
   });
 

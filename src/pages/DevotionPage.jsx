@@ -1,7 +1,6 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
 import React, { useCallback, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import db from "@/api/base44Client";
 
 import { useCharacter } from "@/lib/useCharacter";
 import { FAITH_REWARDS, calculateXPWithPassives, calculateFaithWithPassives } from "@/lib/gameData";
@@ -44,7 +43,7 @@ export default function DevotionPage() {
     queryKey: ["devotions"],
     queryFn: async () => {
       const user = await db.auth.me();
-      return db.entities.Devotion.filter({ created_by: user.email }, "-date");
+      return db.entities.Devotion.filter({ user_id: user.id });
     },
   });
 
@@ -62,41 +61,71 @@ export default function DevotionPage() {
   const completedDates = devotions.map((d) => d.date);
 
   const createDevotion = useMutation({
-    mutationFn: async ({ verse, notes }) => {
-      await db.entities.Devotion.create({
+  mutationFn: async ({ verse, notes }) => {
+    try {
+      const user = await db.auth.me();
+      if (!user) throw new Error("No signed-in user");
+
+      const chars = await db.entities.Character.filter({ user_id: user.id });
+      const currentCharacter = chars[0];
+      if (!currentCharacter) throw new Error("No character found for this user");
+
+      const devotionRow = await db.entities.Devotion.create({
+        user_id: user.id,
+        created_by: user.email,
         date: today,
         bible_verse: verse,
         notes,
         xp_earned: xpToday,
         streak_day: streak + 1,
       });
-      if (character) {
-        addXP(xpToday);
-        addFaith(faithToday);
-        await logActivity({
-          action_type: "xp_gained",
-          source: `Devotion: ${verse}`,
-          amount: xpToday,
-          base_amount: baseXPToday,
-          modifiers: xpModifiers.join(", "),
-          icon: "📖",
-        });
-        await logActivity({
-          action_type: "faith_gained",
-          source: `Devotion: ${verse}`,
-          amount: faithToday,
-          base_amount: baseFaithToday,
-          modifiers: faithModifiers.join(", "),
-          icon: "✨",
-        });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devotions"] });
-      setEditing(false);
-    },
-  });
 
+      await db.entities.Character.update(currentCharacter.id, {
+        total_xp: (currentCharacter.total_xp || 0) + xpToday,
+        xp: (currentCharacter.xp || 0) + xpToday,
+        faith: (currentCharacter.faith || 0) + faithToday,
+        total_faith: (currentCharacter.total_faith || 0) + faithToday,
+      });
+
+      await db.entities.ActivityLog.create({
+        user_id: user.id,
+        created_by: user.email,
+        action_type: "devotion_completed",
+        source: `Devotion: ${verse}`,
+        amount: xpToday,
+        base_amount: baseXPToday,
+        modifiers: xpModifiers.join(", "),
+        icon: "📖",
+      });
+
+      await db.entities.ActivityLog.create({
+        user_id: user.id,
+        created_by: user.email,
+        action_type: "faith_gained",
+        source: `Devotion: ${verse}`,
+        amount: faithToday,
+        base_amount: baseFaithToday,
+        modifiers: faithModifiers.join(", "),
+        icon: "✨",
+      });
+
+      return devotionRow;
+    } catch (error) {
+      console.error("Devotion save failed:", error);
+      throw error;
+    }
+  },
+  onSuccess: async () => {
+    await queryClient.invalidateQueries({ queryKey: ["devotions"] });
+    await queryClient.invalidateQueries({ queryKey: ["character"] });
+    await queryClient.invalidateQueries({ queryKey: ["activity_logs"] });
+    setEditing(false);
+  },
+  onError: (error) => {
+    console.error("Devotion mutation error:", error);
+    alert(error.message || "Devotion save failed");
+  },
+});
   const updateDevotion = useMutation({
     mutationFn: ({ verse, notes }) =>
       db.entities.Devotion.update(todayDevotion.id, {
