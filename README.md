@@ -1,6 +1,6 @@
 # Salt & Light
 
-Salt & Light is a gamified Christian personal growth and devotion web app built with React, Vite, Supabase, and TailwindCSS.
+0 Salt & Light is a gamified Christian personal growth and devotion web app built with React, Vite, Supabase, and TailwindCSS.
 
 Users can:
 - Create a character
