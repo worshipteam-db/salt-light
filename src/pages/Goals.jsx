@@ -42,43 +42,6 @@ export default function Goals() {
     },
   });
 
-  // Auto-renew daily/weekly goals that were completed in a previous period
-  const renewGoals = useMutation({
-    mutationFn: async (goalsToRenew) => {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-      await Promise.all(
-        goalsToRenew.map((g) =>
-          db.entities.Goal.update(g.id, {
-            status: "active",
-            completed_date: undefined,
-            last_reset_date: today,
-          })
-        )
-      );
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["goals"] }),
-  });
-
-  // Trigger auto-renewal when goals load
-  useEffect(() => {
-    if (!goals.length) return;
-    const today = format(new Date(), "yyyy-MM-dd");
-    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
-    const toRenew = goals.filter((g) => {
-      if (g.status !== "completed") return false;
-      if (g.timeframe === "daily") {
-        return g.completed_date !== today;
-      }
-      if (g.timeframe === "weekly") {
-        return g.completed_date < weekStart;
-      }
-      return false;
-    });
-    if (toRenew.length > 0) renewGoals.mutate(toRenew);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goals.map((g) => g.id + g.status + g.completed_date).join(",")]);
-
   const createGoal = useMutation({
     mutationFn: (data) => db.entities.Goal.create(data),
     onMutate: async (data) => {

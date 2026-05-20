@@ -47,8 +47,8 @@ export default function MonthlyGrid({ completedDates = [], devotions = [] }) {
     link.click();
   };
 
-  return (
-    <div className="space-y-3">
+ return (
+  <div className="mx-auto w-full max-w-[620px] px-2 sm:px-4 space-y-3">
       {/* Month header */}
       <div className="flex items-center justify-between">
         <span className="font-display font-semibold text-sm">{format(safeViewDate, "MMMM yyyy")}</span>

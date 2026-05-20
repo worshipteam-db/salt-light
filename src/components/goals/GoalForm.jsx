@@ -4,18 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { XP_REWARDS } from "@/lib/gameData";
+import { format } from "date-fns";
 
 export default function GoalForm({ onSubmit, onCancel, defaultTimeframe = "daily" }) {
+  const today = format(new Date(), "yyyy-MM-dd");
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [timeframe, setTimeframe] = useState(defaultTimeframe);
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(
+    defaultTimeframe === "daily" || defaultTimeframe === "weekly" ? today : ""
+  );
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
+
     onSubmit({
       title: title.trim(),
       description: description.trim(),
@@ -24,10 +30,11 @@ export default function GoalForm({ onSubmit, onCancel, defaultTimeframe = "daily
       xp_reward: XP_REWARDS[timeframe],
       status: "active",
     });
+
     setTitle("");
     setDescription("");
     setTimeframe("daily");
-    setDueDate("");
+    setDueDate(today);
   };
 
   return (
@@ -63,7 +70,18 @@ export default function GoalForm({ onSubmit, onCancel, defaultTimeframe = "daily
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-muted-foreground px-1">Type</label>
-          <Select value={timeframe} onValueChange={setTimeframe}>
+          <Select
+            value={timeframe}
+            onValueChange={(value) => {
+              setTimeframe(value);
+
+              if (value === "daily" || value === "weekly") {
+                setDueDate(today);
+              } else {
+                setDueDate("");
+              }
+            }}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -75,6 +93,7 @@ export default function GoalForm({ onSubmit, onCancel, defaultTimeframe = "daily
             </SelectContent>
           </Select>
         </div>
+
         <div className="flex flex-col gap-1">
           <label className="text-[10px] text-muted-foreground px-1">
             {timeframe === "daily" ? "Date" : timeframe === "weekly" ? "Week of" : "Due date"}
@@ -84,6 +103,11 @@ export default function GoalForm({ onSubmit, onCancel, defaultTimeframe = "daily
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
           />
+         {(timeframe === "long_term" || timeframe === "boss_fight") && (
+  <p className="text-xs text-red-500 mt-1">
+    Date optional for non-guaranteed tasks, or set advance dates for future deadlines.
+  </p>
+)}
         </div>
       </div>
 

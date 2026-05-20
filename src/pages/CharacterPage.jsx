@@ -288,31 +288,42 @@ export default function CharacterPage() {
       </Tabs>
 
       {/* Appearance */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="font-display text-base">Appearance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium">Theme</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Switch between light and dark mode</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="min-h-[44px] gap-2 font-display"
-              onClick={toggleTheme}
-            >
-              {isDark ? (
-                <><Sun className="w-4 h-4" /> Light Mode</>
-              ) : (
-                <><Moon className="w-4 h-4" /> Dark Mode</>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <Card>
+  <CardHeader className="pb-3">
+    <CardTitle className="font-display text-base">Appearance</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-medium">Theme</p>
+        <p className="text-xs text-red-600 mt-1">
+          Dark mode is currently disabled due to bugs.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          This is temporary while the styling is being refined.
+        </p>
+      </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="min-h-[44px] gap-2 font-display opacity-60 cursor-not-allowed"
+        disabled
+        title="Dark mode is temporarily disabled"
+      >
+        {isDark ? (
+          <>
+            <Sun className="w-4 h-4" /> Light Mode
+          </>
+        ) : (
+          <>
+            <Moon className="w-4 h-4" /> Dark Mode
+          </>
+        )}
+      </Button>
+    </div>
+  </CardContent>
+</Card>
 
       {/* Danger Zone */}
       <Card className="border-destructive/20">

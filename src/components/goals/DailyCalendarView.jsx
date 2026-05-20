@@ -160,7 +160,7 @@ export default function DailyCalendarView({ goals = [], onComplete, onDelete, on
   };
 
   return (
-    <div className="space-y-3">
+    <div className="mx-auto w-full max-w-[620px] px-2 sm:px-4 space-y-3">
       {/* Month header */}
       <div className="flex items-center justify-between">
         <span className="font-display font-semibold text-sm">{format(viewDate, "MMMM yyyy")}</span>
@@ -175,14 +175,14 @@ export default function DailyCalendarView({ goals = [], onComplete, onDelete, on
       </div>
 
       {/* Day labels */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
           <div key={`label-${i}`} className="text-center text-[10px] text-muted-foreground font-medium py-0.5">{d[0]}</div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {Array.from({ length: startOffset }).map((_, i) => <div key={`off-${i}`} />)}
         {days.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");

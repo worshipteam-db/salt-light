@@ -128,7 +128,7 @@ export default function WeeklyCalendarView({ goals = [], onComplete, onDelete, o
   };
 
   return (
-    <div className="space-y-3">
+    <div className="mx-auto w-full max-w-[620px] px-2 sm:px-4 space-y-3">
       {/* Month header */}
       <div className="flex items-center justify-between">
         <span className="font-display font-semibold text-sm">{format(viewDate, "MMMM yyyy")}</span>
@@ -143,7 +143,7 @@ export default function WeeklyCalendarView({ goals = [], onComplete, onDelete, o
       </div>
 
       {/* Day labels */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
           <div key={`label-${i}`} className={cn(
             "text-center text-[10px] font-medium py-0.5",
@@ -153,7 +153,7 @@ export default function WeeklyCalendarView({ goals = [], onComplete, onDelete, o
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
         {Array.from({ length: startOffset }).map((_, i) => <div key={`off-${i}`} />)}
         {days.map((day) => {
           const dateStr = format(day, "yyyy-MM-dd");
