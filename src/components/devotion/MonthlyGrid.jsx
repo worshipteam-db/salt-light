@@ -208,9 +208,9 @@ export default function MonthlyGrid({ completedDates = [], devotions = [] }) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
                   Notes
                 </p>
-                <div className="whitespace-pre-wrap text-base leading-8">
-                  {selectedEntry.devotion.notes}
-                </div>
+               <div className="whitespace-pre-wrap text-base leading-8 text-justify hyphens-auto">
+  {selectedEntry.devotion.notes}
+</div>
               </div>
 
               {selectedEntry.devotion.xp_earned && (
