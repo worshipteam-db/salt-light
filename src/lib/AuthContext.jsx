@@ -1,11 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from './supabase';
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { supabase } from "./supabase";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authEvent, setAuthEvent] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -16,7 +17,7 @@ export function AuthProvider({ children }) {
       if (!isMounted) return;
 
       if (error) {
-        console.error('Error loading session:', error);
+        console.error("Error loading session:", error);
       }
 
       setUser(data.session?.user ?? null);
@@ -27,7 +28,8 @@ export function AuthProvider({ children }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthEvent(event ?? null);
       setUser(session?.user ?? null);
       setLoading(false);
     });
@@ -40,10 +42,13 @@ export function AuthProvider({ children }) {
 
   const value = useMemo(() => {
     const isAuthenticated = !!user;
+    const isPasswordRecovery = authEvent === "PASSWORD_RECOVERY";
 
     return {
       user,
       loading,
+      authEvent,
+      isPasswordRecovery,
 
       // Compatibility with old app code
       isLoadingAuth: loading,
@@ -55,7 +60,7 @@ export function AuthProvider({ children }) {
 
       // Temporary helper for later
       navigateToLogin: () => {
-        window.location.href = '/login';
+        window.location.href = "/login";
       },
 
       signIn: (email, password) =>
@@ -72,7 +77,7 @@ export function AuthProvider({ children }) {
 
       signOut: () => supabase.auth.signOut(),
     };
-  }, [user, loading]);
+  }, [user, loading, authEvent]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -81,7 +86,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
   return context;

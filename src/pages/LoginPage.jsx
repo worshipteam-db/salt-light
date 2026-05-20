@@ -68,7 +68,7 @@ function PasswordInput({
 }
 
 export default function LoginPage() {
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, signUp, user, loading, authEvent } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -91,9 +91,10 @@ export default function LoginPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const authClient = db?.auth;
+  const isResetFlow = mode === "reset" || isResetRoute || authEvent === "PASSWORD_RECOVERY";
 
   useEffect(() => {
-    if (isResetRoute) {
+    if (isResetRoute || authEvent === "PASSWORD_RECOVERY") {
       setMode("reset");
       setMessage("Open the email link, then choose a new password here.");
 
@@ -102,15 +103,13 @@ export default function LoginPage() {
         setEmail(storedEmail);
       }
     }
-  }, [isResetRoute, email]);
+  }, [isResetRoute, authEvent, email]);
 
   useEffect(() => {
-    const isResetFlow = mode === "reset" || isResetRoute;
-
     if (!loading && user && !isResetFlow) {
       navigate("/", { replace: true });
     }
-  }, [loading, user, navigate, mode, isResetRoute]);
+  }, [loading, user, navigate, isResetFlow]);
 
   async function handleSubmit(e) {
     e.preventDefault();
