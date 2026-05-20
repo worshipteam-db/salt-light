@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
 async function getCurrentUser() {
   const { data, error } = await supabase.auth.getUser();
@@ -9,10 +9,10 @@ async function getCurrentUser() {
 function makeEntity(tableName) {
   return {
     async filter(filters = {}) {
-      let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
+      let query = supabase.from(tableName).select("*").order("created_at", { ascending: false });
 
       for (const [key, value] of Object.entries(filters)) {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           query = query.eq(key, value);
         }
       }
@@ -29,8 +29,8 @@ function makeEntity(tableName) {
     async get(id) {
       const { data, error } = await supabase
         .from(tableName)
-        .select('*')
-        .eq('id', id)
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
@@ -59,7 +59,7 @@ function makeEntity(tableName) {
       const { data, error } = await supabase
         .from(tableName)
         .update(payload)
-        .eq('id', id)
+        .eq("id", id)
         .select()
         .single();
 
@@ -68,7 +68,7 @@ function makeEntity(tableName) {
     },
 
     async delete(id) {
-      const { error } = await supabase.from(tableName).delete().eq('id', id);
+      const { error } = await supabase.from(tableName).delete().eq("id", id);
       if (error) throw error;
       return true;
     },
@@ -87,25 +87,32 @@ const db = {
       return !!data.session;
     },
     signOut: () => supabase.auth.signOut(),
+
+    // Password recovery
+    resetPasswordForEmail: (email, options = {}) =>
+      supabase.auth.resetPasswordForEmail(email, options),
+
+    // Used after the reset email link brings the user back in
+    updateUser: (attributes = {}) => supabase.auth.updateUser(attributes),
   },
 
   entities: {
-    Character: makeEntity('characters'),
-    Goal: makeEntity('goals'),
-    Devotion: makeEntity('devotions'),
-    ActivityLog: makeEntity('activity_logs'),
-    Profile: makeEntity('profiles'),
+    Character: makeEntity("characters"),
+    Goal: makeEntity("goals"),
+    Devotion: makeEntity("devotions"),
+    ActivityLog: makeEntity("activity_logs"),
+    Profile: makeEntity("profiles"),
 
-    characters: makeEntity('characters'),
-    goals: makeEntity('goals'),
-    devotions: makeEntity('devotions'),
-    activity_logs: makeEntity('activity_logs'),
-    profiles: makeEntity('profiles'),
+    characters: makeEntity("characters"),
+    goals: makeEntity("goals"),
+    devotions: makeEntity("devotions"),
+    activity_logs: makeEntity("activity_logs"),
+    profiles: makeEntity("profiles"),
   },
 
   integrations: {
     Core: {
-      UploadFile: async () => ({ file_url: '' }),
+      UploadFile: async () => ({ file_url: "" }),
     },
   },
 };

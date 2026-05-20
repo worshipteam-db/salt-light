@@ -1,51 +1,154 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/AuthContext';
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/lib/AuthContext";
+import db from "@/api/base44Client";
+
+const RESET_PENDING_KEY = "salt_light_password_reset_pending_email";
+
+async function updatePassword(authClient, newPassword) {
+  if (typeof authClient?.updateUser === "function") {
+    return authClient.updateUser({ password: newPassword });
+  }
+
+  if (typeof authClient?.update === "function") {
+    return authClient.update({ password: newPassword });
+  }
+
+  throw new Error("Password update is not supported by this auth client.");
+}
+
+async function requestPasswordReset(authClient, email, redirectTo) {
+  if (typeof authClient?.resetPasswordForEmail === "function") {
+    return authClient.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+  }
+
+  throw new Error("Password reset is not supported by this auth client.");
+}
 
 export default function LoginPage() {
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mode, setMode] = useState('login');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+
+  const urlMode = searchParams.get("mode");
+  const isResetRoute = urlMode === "reset" || urlMode === "recovery";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [mode, setMode] = useState("login"); // login | signup | forgot | reset
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const authClient = db?.auth;
+
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/', { replace: true });
+    if (isResetRoute) {
+      setMode("reset");
+      setMessage(
+        "Open the email link, then choose a new password here."
+      );
+
+      const storedEmail = localStorage.getItem(RESET_PENDING_KEY);
+      if (storedEmail && !email) {
+        setEmail(storedEmail);
+      }
     }
-  }, [loading, user, navigate]);
+  }, [isResetRoute]);
+
+  useEffect(() => {
+    const isResetFlow = mode === "reset" || isResetRoute;
+
+    if (!loading && user && !isResetFlow) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, user, navigate, mode, isResetRoute]);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     setIsSubmitting(true);
 
     try {
-      if (mode === 'login') {
+      if (mode === "login") {
         const { error } = await signIn(email, password);
         if (error) throw error;
-        navigate('/', { replace: true });
+        navigate("/", { replace: true });
         return;
       }
 
-      const { data, error } = await signUp(email, password);
-      if (error) throw error;
+      if (mode === "signup") {
+        const { data, error } = await signUp(email, password);
+        if (error) throw error;
 
-      if (data?.session) {
-        navigate('/', { replace: true });
-      } else {
-        setMessage('Account created. Check your email if confirmation is enabled, then log in.');
+        if (data?.session) {
+          navigate("/", { replace: true });
+        } else {
+          setMessage(
+            "Account created. Check your email if confirmation is enabled, then log in."
+          );
+        }
+        return;
+      }
+
+      if (mode === "forgot") {
+        if (!email.trim()) {
+          throw new Error("Please enter your email address.");
+        }
+
+        const redirectTo = `${window.location.origin}/login?mode=reset`;
+        const { error } = await requestPasswordReset(
+          authClient,
+          email.trim(),
+          redirectTo
+        );
+
+        if (error) throw error;
+
+        localStorage.setItem(RESET_PENDING_KEY, email.trim());
+        setMessage(
+          "Password reset email sent. Open the link in your inbox, then come back here to set a new password."
+        );
+        return;
+      }
+
+      if (mode === "reset") {
+        if (!password.trim()) {
+          throw new Error("Please enter a new password.");
+        }
+
+        if (password.length < 6) {
+          throw new Error("Password must be at least 6 characters.");
+        }
+
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match.");
+        }
+
+        const { error } = await updatePassword(authClient, password);
+        if (error) throw error;
+
+        localStorage.removeItem(RESET_PENDING_KEY);
+        setMessage("Password updated. You can log in with your new password now.");
+        setMode("login");
+        setPassword("");
+        setConfirmPassword("");
+        navigate("/", { replace: true });
       }
     } catch (err) {
-      const msg = err?.message || 'Something went wrong';
+      const msg = err?.message || "Something went wrong";
       setError(
-        msg === 'email rate limit exceeded'
-          ? 'Email rate limit exceeded. Turn off email confirmation in Supabase or wait before trying again.'
+        msg === "email rate limit exceeded"
+          ? "Email rate limit exceeded. Turn off email confirmation in Supabase or wait before trying again."
           : msg
       );
     } finally {
@@ -53,40 +156,113 @@ export default function LoginPage() {
     }
   }
 
+  const isResetFlow = mode === "reset" || isResetRoute;
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl border p-6 shadow-sm bg-white">
-        <h1 className="text-2xl font-bold mb-2">Salt & Light</h1>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-background">
+      <div className="w-full max-w-md rounded-2xl border p-6 shadow-sm bg-card">
+        <h1 className="text-2xl font-bold mb-2">Salt &amp; Light</h1>
+
         <p className="text-sm text-muted-foreground mb-6">
-          {mode === 'login' ? 'Log in to continue' : 'Create your account'}
+          {mode === "login" && "Log in to continue"}
+          {mode === "signup" && "Create your account"}
+          {mode === "forgot" && "Reset your password"}
+          {mode === "reset" && "Set a new password"}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input
-              className="w-full rounded-lg border px-3 py-2"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-              disabled={isSubmitting}
-            />
-          </div>
+          {(mode === "login" || mode === "signup" || mode === "forgot") && (
+            <div>
+              <label className="block text-sm mb-1">Email</label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 bg-background"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm mb-1">Password</label>
-            <input
-              className="w-full rounded-lg border px-3 py-2"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-              disabled={isSubmitting}
-            />
-          </div>
+          {mode === "login" && (
+            <div>
+              <label className="block text-sm mb-1">Password</label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 bg-background"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                className="mt-2 text-xs underline text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setError("");
+                  setMessage("");
+                  setMode("forgot");
+                }}
+                disabled={isSubmitting}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
+          {mode === "signup" && (
+            <div>
+              <label className="block text-sm mb-1">Password</label>
+              <input
+                className="w-full rounded-lg border px-3 py-2 bg-background"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                required
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+
+          {mode === "reset" && (
+            <>
+              <div>
+                <label className="block text-sm mb-1">New password</label>
+                <input
+                  className="w-full rounded-lg border px-3 py-2 bg-background"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Confirm new password</label>
+                <input
+                  className="w-full rounded-lg border px-3 py-2 bg-background"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {user
+                  ? "You are signed in from the reset link. Save a new password now."
+                  : "If the reset link opened correctly, you should be able to save a new password here."}
+              </p>
+            </>
+          )}
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           {message ? <p className="text-sm text-green-600">{message}</p> : null}
@@ -96,22 +272,66 @@ export default function LoginPage() {
             className="w-full rounded-lg bg-black text-white py-2 font-medium disabled:opacity-60"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Please wait...' : mode === 'login' ? 'Log In' : 'Sign Up'}
+            {isSubmitting
+              ? "Please wait..."
+              : mode === "login"
+              ? "Log In"
+              : mode === "signup"
+              ? "Sign Up"
+              : mode === "forgot"
+              ? "Send Reset Email"
+              : "Save New Password"}
           </button>
         </form>
 
-        <button
-          type="button"
-          className="mt-4 text-sm underline"
-          onClick={() => {
-            setMode(mode === 'login' ? 'signup' : 'login');
-            setError('');
-            setMessage('');
-          }}
-          disabled={isSubmitting}
-        >
-          {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Log in'}
-        </button>
+        <div className="mt-4 space-y-2">
+          {mode !== "reset" && (
+            <button
+              type="button"
+              className="text-sm underline block"
+              onClick={() => {
+                setMode(mode === "login" ? "signup" : "login");
+                setError("");
+                setMessage("");
+              }}
+              disabled={isSubmitting}
+            >
+              {mode === "login"
+                ? "Need an account? Sign up"
+                : "Already have an account? Log in"}
+            </button>
+          )}
+
+          {mode === "forgot" && (
+            <button
+              type="button"
+              className="text-sm underline block"
+              onClick={() => {
+                setMode("login");
+                setError("");
+                setMessage("");
+              }}
+              disabled={isSubmitting}
+            >
+              Back to log in
+            </button>
+          )}
+
+          {mode === "reset" && (
+            <button
+              type="button"
+              className="text-sm underline block"
+              onClick={() => {
+                setMode("login");
+                setError("");
+                setMessage("");
+              }}
+              disabled={isSubmitting}
+            >
+              Back to log in
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
