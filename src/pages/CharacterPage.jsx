@@ -47,6 +47,8 @@ import {
   LogOut,
   Pencil,
   Download,
+  BadgeCheck,
+  ArrowRight,
 } from "lucide-react";
 import { EQUIPMENT, SKILLS } from "@/lib/gameData";
 import { motion } from "framer-motion";
@@ -69,6 +71,10 @@ export default function CharacterPage() {
   const {
     character,
     levelInfo,
+    achievementState,
+    achievementCompletionPercent,
+    achievementUnlockedCount,
+    achievementTotalCount,
     isLoading,
     createCharacter,
     toggleEquip,
@@ -252,6 +258,44 @@ export default function CharacterPage() {
                 />
                 <StatBox icon={Flame} label="Total Faith" value={character.total_faith || 0} color="text-orange-500" />
               </div>
+
+              {/* Achievements summary */}
+              <Card className="bg-muted/30 border-dashed">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2">
+                      <BadgeCheck className="w-4 h-4 text-primary mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold">Achievements</p>
+                        <p className="text-xs text-muted-foreground">
+                          {achievementUnlockedCount}/{achievementTotalCount} unlocked
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-primary">
+                      {achievementCompletionPercent}%
+                    </span>
+                  </div>
+
+                  <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${achievementCompletionPercent}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Track milestones for level, devotion, equipment, skills, and job progress.
+                    </p>
+                    <Button asChild variant="outline" size="sm" className="shrink-0 min-h-[44px]">
+                      <Link to="/achievements">
+                        View <ArrowRight className="w-4 h-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
               {equippedCount > 0 && (
                 <div className="space-y-1.5">
