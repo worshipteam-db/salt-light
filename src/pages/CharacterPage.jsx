@@ -8,6 +8,7 @@ import XPBar from "@/components/character/XPBar";
 import EquipmentGrid from "@/components/character/EquipmentGrid";
 import JobTree from "@/components/character/JobTree";
 import SkillTree from "@/components/character/SkillTree";
+import FriendsPanel from "@/components/character/FriendsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -295,7 +296,7 @@ export default function CharacterPage() {
       </motion.div>
 
       <Tabs defaultValue="equipment">
-        <TabsList className="w-full grid grid-cols-3 h-auto">
+        <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-auto">
           <TabsTrigger value="equipment" className="font-display text-xs min-h-[44px]">
             ⚔️ Equipment
           </TabsTrigger>
@@ -304,6 +305,9 @@ export default function CharacterPage() {
           </TabsTrigger>
           <TabsTrigger value="skills" className="font-display text-xs min-h-[44px]">
             ✨ Skills
+          </TabsTrigger>
+          <TabsTrigger value="friends" className="font-display text-xs min-h-[44px]">
+            👥 Friends
           </TabsTrigger>
         </TabsList>
 
@@ -336,6 +340,17 @@ export default function CharacterPage() {
             </CardHeader>
             <CardContent>
               <SkillTree character={character} onUnlockSkill={unlockSkill} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="friends">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="font-display text-base">Friends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FriendsPanel />
             </CardContent>
           </Card>
         </TabsContent>

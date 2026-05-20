@@ -20,6 +20,7 @@ import CharacterPage from "@/pages/CharacterPage";
 import DevotionPage from "@/pages/DevotionPage";
 import LoginPage from "@/pages/LoginPage";
 import FeedbackPage from "@/pages/FeedbackPage";
+import MailPage from "@/pages/MailPage";
 import ClickSpark from "@/components/ClickSpark";
 
 function FloatingFeedbackBubble() {
@@ -31,14 +32,14 @@ function FloatingFeedbackBubble() {
 
   return (
     <Link
-  to="/feedback"
-  className="hidden sm:flex fixed bottom-4 right-4 z-[9999] items-center justify-center rounded-full bg-primary px-3 py-2 text-primary-foreground shadow-lg ring-1 ring-black/10 transition-all hover:bg-primary/90"
-  title="Feedback / Bug Report"
->
-  <span className="text-[10px] font-medium leading-none whitespace-nowrap">
-    Feedback / Bug Report
-  </span>
-</Link>
+      to="/feedback"
+      className="hidden sm:flex fixed bottom-4 right-4 z-[9999] items-center justify-center rounded-full bg-primary px-3 py-2 text-primary-foreground shadow-lg ring-1 ring-black/10 transition-all hover:bg-primary/90"
+      title="Feedback / Bug Report"
+    >
+      <span className="text-[10px] font-medium leading-none whitespace-nowrap">
+        Feedback / Bug Report
+      </span>
+    </Link>
   );
 }
 
@@ -73,6 +74,7 @@ function App() {
                   <Route path="/archive" element={<TaskArchive />} />
                   <Route path="/character" element={<CharacterPage />} />
                   <Route path="/devotion" element={<DevotionPage />} />
+                  <Route path="/mail" element={<MailPage />} />
                   <Route path="/feedback" element={<FeedbackPage />} />
                 </Route>
               </Route>
