@@ -190,7 +190,9 @@ export default function FriendsPanel() {
     if (!targetUserId) return null;
 
     const existing = friendships.find(
-      (f) => f.requester_id === user?.id && f.addressee_id === targetUserId
+      (f) =>
+        (f.requester_id === user?.id && f.addressee_id === targetUserId) ||
+        (f.requester_id === targetUserId && f.addressee_id === user?.id)
     );
 
     return existing?.status || null;
@@ -250,7 +252,7 @@ export default function FriendsPanel() {
         setSearchNotice("You are already friends.");
       } else if (relationship === "pending") {
         setSearchNoticeType("info");
-        setSearchNotice("Friend request already sent.");
+        setSearchNotice("Friend request already exists.");
       }
     } catch (err) {
       setSearchError(err.message || "Search failed");
@@ -275,21 +277,19 @@ export default function FriendsPanel() {
       return;
     }
 
-    const existing = friendships.find(
-      (f) => f.requester_id === user.id && f.addressee_id === targetUserId
-    );
+    const relationship = getRelationship(targetUserId);
 
-    if (existing?.status === "accepted") {
+    if (relationship === "accepted") {
       toast.info("You are already friends.");
       setSearchNoticeType("success");
       setSearchNotice("You are already friends.");
       return;
     }
 
-    if (existing?.status === "pending") {
-      toast.info("Friend request already sent.");
+    if (relationship === "pending") {
+      toast.info("Friend request already exists.");
       setSearchNoticeType("info");
-      setSearchNotice("Friend request already sent.");
+      setSearchNotice("Friend request already exists.");
       return;
     }
 
@@ -384,7 +384,7 @@ export default function FriendsPanel() {
     currentRelationship === "accepted"
       ? "Already Friends"
       : currentRelationship === "pending"
-      ? "Request Sent"
+      ? "Request Exists"
       : "Send Request";
 
   const searchActionDisabled =
