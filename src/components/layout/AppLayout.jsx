@@ -28,11 +28,8 @@ const pageVariants = {
   exit: { opacity: 0, x: -12 },
 };
 
-const ROOT_ROUTES = ["/", "/goals", "/character", "/mail"];
-
 export default function AppLayout() {
   const location = useLocation();
-  const isRoot = ROOT_ROUTES.includes(location.pathname);
   const [showTutorial, setShowTutorial] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const { user } = useAuth();
@@ -59,7 +56,23 @@ export default function AppLayout() {
 
   useEffect(() => {
     loadPendingCount();
+  }, [user?.id]);
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      loadPendingCount();
+    };
+
+    window.addEventListener("friendships-updated", handleRefresh);
+    window.addEventListener("focus", handleRefresh);
+
+    return () => {
+      window.removeEventListener("friendships-updated", handleRefresh);
+      window.removeEventListener("focus", handleRefresh);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       loadPendingCount();
     }, 20000);
@@ -72,7 +85,7 @@ export default function AppLayout() {
       className="min-h-screen bg-background flex flex-col"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      {/* Desktop top bar — hidden on mobile */}
+      {/* Desktop top bar */}
       <header className="hidden sm:block sticky top-0 z-50 bg-card/80 backdrop-blur-xl border-b">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 select-none">
@@ -148,7 +161,6 @@ export default function AppLayout() {
         {showTutorial && <TutorialModal onClose={() => setShowTutorial(false)} />}
       </AnimatePresence>
 
-      {/* Page content */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+80px)] sm:pb-6">
         <AnimatePresence mode="wait">
           <motion.div
@@ -183,7 +195,9 @@ export default function AppLayout() {
                   active ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <item.icon className={cn("w-5 h-5 transition-transform", active && "scale-110")} />
+                <item.icon
+                  className={cn("w-5 h-5 transition-transform", active && "scale-110")}
+                />
                 <span className="text-[10px] font-medium font-display">{item.label}</span>
 
                 {isMail && pendingCount > 0 && (

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { getJobById } from "@/lib/gameData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mail, Check, X, Loader2, Users } from "lucide-react";
+import { Mail, Check, X, Users } from "lucide-react";
 import { toast } from "sonner";
 
 function RequestCard({ profile, request, onAccept, onDecline, loadingId }) {
@@ -139,6 +139,10 @@ export default function MailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requests.map((r) => r.requester_id).join(",")]);
 
+  const refreshMailBadge = () => {
+    window.dispatchEvent(new Event("friendships-updated"));
+  };
+
   const respond = async (requestId, status) => {
     setActionLoadingId(requestId);
 
@@ -156,6 +160,8 @@ export default function MailPage() {
       toast.success(
         status === "accepted" ? "Friend request accepted!" : "Friend request declined"
       );
+
+      refreshMailBadge();
       await loadRequests();
     } catch (err) {
       toast.error(err.message || "Could not update request");
@@ -199,6 +205,7 @@ export default function MailPage() {
             Inbox
           </CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-3">
           {requests.length === 0 ? (
             <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
@@ -212,9 +219,44 @@ export default function MailPage() {
                 return (
                   <div
                     key={request.id}
-                    className="rounded-xl border bg-card p-4 text-sm text-muted-foreground"
+                    className="rounded-xl border bg-card p-4 space-y-3"
                   >
-                    Loading request...
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        <p className="font-display font-bold text-base leading-none">
+                          Friend request
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          We could not load the sender profile, but the request is here.
+                        </p>
+                      </div>
+
+                      <span className="inline-flex items-center rounded-full bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold text-red-700">
+                        New request
+                      </span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => respond(request.id, "accepted")}
+                        disabled={actionLoadingId === request.id}
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Accept
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => respond(request.id, "declined")}
+                        disabled={actionLoadingId === request.id}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Decline
+                      </Button>
+                    </div>
                   </div>
                 );
               }

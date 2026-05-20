@@ -71,6 +71,8 @@ export default function FriendsPanel() {
   const [searchId, setSearchId] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [searchNotice, setSearchNotice] = useState("");
+  const [searchNoticeType, setSearchNoticeType] = useState("info");
   const [searchResult, setSearchResult] = useState(null);
 
   const [friendships, setFriendships] = useState([]);
@@ -174,12 +176,33 @@ export default function FriendsPanel() {
     }
   };
 
+  const resolveTargetUserId = (result) => {
+    return (
+      result?.target_user_id ||
+      result?.targetUserId ||
+      result?.user_id ||
+      result?.addressee_id ||
+      null
+    );
+  };
+
+  const getRelationship = (targetUserId) => {
+    if (!targetUserId) return null;
+
+    const existing = friendships.find(
+      (f) => f.requester_id === user?.id && f.addressee_id === targetUserId
+    );
+
+    return existing?.status || null;
+  };
+
   const handleSearch = async () => {
     if (!searchId.trim()) return;
 
     setSearching(true);
     setSearchError("");
     setSearchResult(null);
+    setSearchNotice("");
     setRequestSent("");
 
     try {
@@ -191,23 +214,44 @@ export default function FriendsPanel() {
 
       if (error) throw error;
 
-      const result = Array.isArray(data) ? data[0] : data?.[0] || data || null;
+      const rawResult = Array.isArray(data) ? data[0] : data?.[0] || data || null;
 
-      if (!result) {
+      if (!rawResult) {
         setSearchError("No character found with that ID.");
         return;
       }
 
+      const targetUserId = resolveTargetUserId(rawResult);
+
+      const normalized = {
+        ...rawResult,
+        targetUserId,
+      };
+
+      if (!normalized.targetUserId) {
+        setSearchError("That profile could not be opened right now.");
+        return;
+      }
+
       if (
-        result.addressee_id === user?.id ||
-        result.public_id === character?.public_id
+        normalized.targetUserId === user?.id ||
+        normalized.public_id === character?.public_id
       ) {
         setSearchError("You cannot add yourself as a friend.");
         setSearchResult(null);
         return;
       }
 
-      setSearchResult(result);
+      setSearchResult(normalized);
+
+      const relationship = getRelationship(normalized.targetUserId);
+      if (relationship === "accepted") {
+        setSearchNoticeType("success");
+        setSearchNotice("You are already friends.");
+      } else if (relationship === "pending") {
+        setSearchNoticeType("info");
+        setSearchNotice("Friend request already sent.");
+      }
     } catch (err) {
       setSearchError(err.message || "Search failed");
     } finally {
@@ -216,10 +260,15 @@ export default function FriendsPanel() {
   };
 
   const sendRequest = async (target) => {
-    if (!user || !target?.addressee_id) return;
+    const targetUserId = target?.targetUserId;
+
+    if (!user || !targetUserId) {
+      toast.error("Could not determine who to send the request to.");
+      return;
+    }
 
     if (
-      target.addressee_id === user?.id ||
+      targetUserId === user?.id ||
       target.public_id === character?.public_id
     ) {
       toast.error("You cannot send a friend request to yourself.");
@@ -227,27 +276,30 @@ export default function FriendsPanel() {
     }
 
     const existing = friendships.find(
-      (f) =>
-        f.requester_id === user.id && f.addressee_id === target.addressee_id
+      (f) => f.requester_id === user.id && f.addressee_id === targetUserId
     );
 
-    if (existing && existing.status === "accepted") {
+    if (existing?.status === "accepted") {
       toast.info("You are already friends.");
+      setSearchNoticeType("success");
+      setSearchNotice("You are already friends.");
       return;
     }
 
-    if (existing && existing.status === "pending") {
+    if (existing?.status === "pending") {
       toast.info("Friend request already sent.");
+      setSearchNoticeType("info");
+      setSearchNotice("Friend request already sent.");
       return;
     }
 
-    setActionLoadingId(target.addressee_id);
+    setActionLoadingId(targetUserId);
 
     try {
       const { error } = await supabase.from("friendships").insert([
         {
           requester_id: user.id,
-          addressee_id: target.addressee_id,
+          addressee_id: targetUserId,
           status: "pending",
         },
       ]);
@@ -256,8 +308,10 @@ export default function FriendsPanel() {
 
       toast.success("Friend request sent!");
       setRequestSent(`Friend request sent to ${target.name || target.public_id}.`);
-      setSearchId("");
+      setSearchNoticeType("info");
+      setSearchNotice("Friend request sent.");
       await loadFriendships();
+      window.dispatchEvent(new Event("friendships-updated"));
     } catch (err) {
       toast.error(err.message || "Could not send request");
     } finally {
@@ -282,6 +336,7 @@ export default function FriendsPanel() {
       toast.success(
         status === "accepted" ? "Request accepted!" : "Request declined"
       );
+      window.dispatchEvent(new Event("friendships-updated"));
       await loadFriendships();
     } catch (err) {
       toast.error(err.message || "Could not update request");
@@ -302,6 +357,7 @@ export default function FriendsPanel() {
       if (error) throw error;
 
       toast.success("Friend removed");
+      window.dispatchEvent(new Event("friendships-updated"));
       await loadFriendships();
     } catch (err) {
       toast.error(err.message || "Could not remove friend");
@@ -319,6 +375,25 @@ export default function FriendsPanel() {
   }
 
   const renderPublicId = character?.public_id || "Loading...";
+
+  const currentRelationship = searchResult
+    ? getRelationship(searchResult.targetUserId)
+    : null;
+
+  const searchActionLabel =
+    currentRelationship === "accepted"
+      ? "Already Friends"
+      : currentRelationship === "pending"
+      ? "Request Sent"
+      : "Send Request";
+
+  const searchActionDisabled =
+    !searchResult ||
+    actionLoadingId === searchResult.targetUserId ||
+    searchResult.targetUserId === user?.id ||
+    searchResult.public_id === character?.public_id ||
+    currentRelationship === "accepted" ||
+    currentRelationship === "pending";
 
   return (
     <div className="space-y-5">
@@ -355,6 +430,8 @@ export default function FriendsPanel() {
               onChange={(e) => {
                 setSearchId(e.target.value);
                 setRequestSent("");
+                setSearchNotice("");
+                setSearchError("");
               }}
               placeholder="Search by Public ID (e.g. SL-ABC12345)"
               className="font-mono"
@@ -382,9 +459,19 @@ export default function FriendsPanel() {
 
           {searchError && <p className="text-sm text-red-600">{searchError}</p>}
 
-          {requestSent && (
-            <p className="text-sm text-green-600">{requestSent}</p>
+          {searchNotice && (
+            <p
+              className={
+                searchNoticeType === "success"
+                  ? "text-sm text-green-600"
+                  : "text-sm text-blue-600"
+              }
+            >
+              {searchNotice}
+            </p>
           )}
+
+          {requestSent && <p className="text-sm text-green-600">{requestSent}</p>}
 
           {searchResult && (
             <ProfileCard
@@ -394,15 +481,11 @@ export default function FriendsPanel() {
                 <Button
                   type="button"
                   onClick={() => sendRequest(searchResult)}
-                  disabled={
-                    actionLoadingId === searchResult.addressee_id ||
-                    searchResult.addressee_id === user?.id ||
-                    searchResult.public_id === character?.public_id
-                  }
+                  disabled={searchActionDisabled}
                   className="min-h-[40px]"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Send Request
+                  {searchActionLabel}
                 </Button>
               }
             />
@@ -432,41 +515,42 @@ export default function FriendsPanel() {
           <div className="space-y-3">
             {incomingRequests.map((request) => {
               const profile = profilesByUserId[request.requester_id];
-              return (
-                <div key={request.id}>
-                  {profile ? (
-                    <ProfileCard
-                      profile={profile}
-                      subtitle="Incoming request"
-                      actionSlot={
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => respondToRequest(request.id, "accepted")}
-                            disabled={actionLoadingId === request.id}
-                          >
-                            <Check className="w-4 h-4 mr-2" />
-                            Accept
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => respondToRequest(request.id, "declined")}
-                            disabled={actionLoadingId === request.id}
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            Decline
-                          </Button>
-                        </div>
-                      }
-                    />
-                  ) : (
-                    <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-                      Incoming request loading...
+
+              return profile ? (
+                <ProfileCard
+                  key={request.id}
+                  profile={profile}
+                  subtitle="Incoming request"
+                  actionSlot={
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => respondToRequest(request.id, "accepted")}
+                        disabled={actionLoadingId === request.id}
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Accept
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => respondToRequest(request.id, "declined")}
+                        disabled={actionLoadingId === request.id}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Decline
+                      </Button>
                     </div>
-                  )}
+                  }
+                />
+              ) : (
+                <div
+                  key={request.id}
+                  className="rounded-xl border bg-card p-4 text-sm text-muted-foreground"
+                >
+                  Incoming request loading...
                 </div>
               );
             })}
@@ -535,6 +619,7 @@ export default function FriendsPanel() {
           <div className="space-y-3">
             {outgoingRequests.map((request) => {
               const profile = profilesByUserId[request.addressee_id];
+
               return profile ? (
                 <ProfileCard
                   key={request.id}
