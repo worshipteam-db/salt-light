@@ -1,5 +1,4 @@
 import db from "@/api/base44Client";
-
 import React, { useState } from "react";
 import { useCharacter } from "@/lib/useCharacter";
 import { getJobById } from "@/lib/gameData";
@@ -14,20 +13,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { Trophy, Swords, Sparkles, Trash2, Zap, BookOpen, Flame, Shield, Sun, Moon, Brain, LogOut, Pencil, Download } from "lucide-react";
+import {
+  Trophy,
+  Swords,
+  Sparkles,
+  Trash2,
+  Zap,
+  BookOpen,
+  Flame,
+  Shield,
+  Sun,
+  Moon,
+  Brain,
+  LogOut,
+  Pencil,
+  Download,
+} from "lucide-react";
 import { EQUIPMENT, SKILLS } from "@/lib/gameData";
 import { motion } from "framer-motion";
-
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/AuthContext";
+import { Link } from "react-router-dom";
 
 function StatBox({ icon: Icon, label, value, color = "text-primary" }) {
   return (
@@ -40,9 +65,21 @@ function StatBox({ icon: Icon, label, value, color = "text-primary" }) {
 }
 
 export default function CharacterPage() {
-  const { character, levelInfo, isLoading, createCharacter, toggleEquip, buyEquipment, unlockSkill, changeJob, MAX_EQUIPPED } = useCharacter();
+  const {
+    character,
+    levelInfo,
+    isLoading,
+    createCharacter,
+    toggleEquip,
+    buyEquipment,
+    unlockSkill,
+    changeJob,
+    MAX_EQUIPPED,
+  } = useCharacter();
+
   const queryClient = useQueryClient();
   const { signOut } = useAuth();
+
   const [deleting, setDeleting] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
@@ -114,7 +151,6 @@ export default function CharacterPage() {
 
   const currentJob = getJobById(character.current_job || "seeker");
   const equippedCount = character.equipped_items?.length || 0;
-  const unlockedCount = character.unlocked_items?.length || 0;
 
   return (
     <div className="space-y-5">
@@ -140,7 +176,6 @@ export default function CharacterPage() {
           <CardContent className="p-5 flex flex-col sm:flex-row items-center gap-5">
             <CharacterAvatar character={character} size="lg" />
             <div className="flex-1 space-y-4 w-full">
-              {/* Job badge + bonuses */}
               <div className="flex items-start gap-2 flex-wrap">
                 <span className="text-xl mt-0.5">{currentJob.icon}</span>
                 <div className="flex-1 min-w-0">
@@ -154,6 +189,7 @@ export default function CharacterPage() {
                         }}
                         className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                         aria-label="Rename character"
+                        type="button"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -170,8 +206,12 @@ export default function CharacterPage() {
                           onKeyDown={(e) => e.key === "Enter" && handleRename()}
                         />
                         <DialogFooter>
-                          <Button variant="outline" onClick={() => setRenaming(false)}>Cancel</Button>
-                          <Button onClick={handleRename} disabled={!newName.trim()}>Rename</Button>
+                          <Button variant="outline" onClick={() => setRenaming(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleRename} disabled={!newName.trim()}>
+                            Rename
+                          </Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
@@ -180,13 +220,24 @@ export default function CharacterPage() {
                   {currentJob.bonuses?.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {currentJob.bonuses.map((b, i) => (
-                        <span key={i} className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium">{b}</span>
+                        <span
+                          key={i}
+                          className="text-[10px] bg-primary/10 text-primary rounded px-1.5 py-0.5 font-medium"
+                        >
+                          {b}
+                        </span>
                       ))}
                     </div>
                   )}
                 </div>
               </div>
-              <XPBar currentXP={levelInfo.currentXP} neededXP={levelInfo.neededXP} level={levelInfo.level} />
+
+              <XPBar
+                currentXP={levelInfo.currentXP}
+                neededXP={levelInfo.neededXP}
+                level={levelInfo.level}
+              />
+
               <div className="grid grid-cols-3 gap-2">
                 <StatBox icon={Trophy} label="Goals Done" value={character.goals_completed || 0} color="text-accent" />
                 <StatBox icon={Zap} label="Total XP" value={character.total_xp || 0} color="text-chart-2" />
@@ -201,14 +252,13 @@ export default function CharacterPage() {
                 <StatBox icon={Flame} label="Total Faith" value={character.total_faith || 0} color="text-orange-500" />
               </div>
 
-              {/* Equipped item effects */}
               {equippedCount > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <Shield className="w-3 h-3" /> Equipped Effects
                   </p>
                   <div className="space-y-1">
-                    {EQUIPMENT.filter(e => character.equipped_items?.includes(e.id)).map(item => (
+                    {EQUIPMENT.filter((e) => character.equipped_items?.includes(e.id)).map((item) => (
                       <div key={item.id} className="flex items-center gap-2 text-xs">
                         <span>{item.icon}</span>
                         <span className="font-medium text-foreground">{item.name}</span>
@@ -222,14 +272,13 @@ export default function CharacterPage() {
                 </div>
               )}
 
-              {/* Active skill effects */}
               {character.unlocked_skills?.length > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <Brain className="w-3 h-3" /> Active Skills ({character.unlocked_skills.length})
                   </p>
                   <div className="max-h-32 overflow-y-auto pr-2 space-y-1">
-                    {SKILLS.filter(s => character.unlocked_skills.includes(s.id)).map(skill => (
+                    {SKILLS.filter((s) => character.unlocked_skills.includes(s.id)).map((skill) => (
                       <div key={skill.id} className="flex items-center gap-2 text-xs flex-wrap">
                         <span className="shrink-0">{skill.icon}</span>
                         <span className="font-medium text-foreground">{skill.name}</span>
@@ -245,12 +294,17 @@ export default function CharacterPage() {
         </Card>
       </motion.div>
 
-      {/* Tabs */}
       <Tabs defaultValue="equipment">
         <TabsList className="w-full grid grid-cols-3 h-auto">
-          <TabsTrigger value="equipment" className="font-display text-xs min-h-[44px]">⚔️ Equipment</TabsTrigger>
-          <TabsTrigger value="jobs" className="font-display text-xs min-h-[44px]">🗺️ Jobs</TabsTrigger>
-          <TabsTrigger value="skills" className="font-display text-xs min-h-[44px]">✨ Skills</TabsTrigger>
+          <TabsTrigger value="equipment" className="font-display text-xs min-h-[44px]">
+            ⚔️ Equipment
+          </TabsTrigger>
+          <TabsTrigger value="jobs" className="font-display text-xs min-h-[44px]">
+            🗺️ Jobs
+          </TabsTrigger>
+          <TabsTrigger value="skills" className="font-display text-xs min-h-[44px]">
+            ✨ Skills
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="equipment">
@@ -288,67 +342,79 @@ export default function CharacterPage() {
       </Tabs>
 
       {/* Appearance */}
-    <Card>
-  <CardHeader className="pb-3">
-    <CardTitle className="font-display text-base">Appearance</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <div className="space-y-4">
-      <div>
-        <p className="text-sm font-medium">Theme</p>
-        <p className="text-xs text-red-600 mt-1">
-          Dark mode is currently disabled due to bugs.
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          This is temporary while the styling is being refined.
-        </p>
-      </div>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="font-display text-base">Appearance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-medium">Theme</p>
+              <p className="text-xs text-red-600 mt-1">Dark mode is currently disabled due to bugs.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                This is temporary while the styling is being refined.
+              </p>
+            </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="min-h-[44px] gap-2 font-display opacity-60 cursor-not-allowed"
-        disabled
-        title="Dark mode is temporarily disabled"
-      >
-        {isDark ? (
-          <>
-            <Sun className="w-4 h-4" /> Light Mode
-          </>
-        ) : (
-          <>
-            <Moon className="w-4 h-4" /> Dark Mode
-          </>
-        )}
-      </Button>
-    </div>
-  </CardContent>
-</Card>
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-[44px] gap-2 font-display opacity-60 cursor-not-allowed"
+              disabled
+              title="Dark mode is temporarily disabled"
+            >
+              {isDark ? (
+                <>
+                  <Sun className="w-4 h-4" /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4" /> Dark Mode
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Danger Zone */}
+      <Card className="border-primary/20">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-4 flex-col sm:flex-row">
+            <div>
+              <p className="text-sm font-medium">Feedback / Bug Report</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Send a bug report or suggestion.</p>
+            </div>
+
+            <Button asChild className="w-full sm:w-auto min-h-[44px] px-4 sm:px-5">
+              <Link to="/feedback">Open Form</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-destructive/20">
         <CardHeader className="pb-3">
           <CardTitle className="font-display text-base text-destructive">Danger Zone</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Logout */}
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Log Out</p>
               <p className="text-xs text-muted-foreground mt-0.5">Sign out of your account.</p>
             </div>
-           <Button variant="outline" size="sm" className="min-h-[44px] shrink-0" onClick={() => signOut()}>
-  <LogOut className="w-4 h-4 mr-2" /> Log Out
-</Button>
+            <Button variant="outline" size="sm" className="min-h-[44px] shrink-0" onClick={() => signOut()}>
+              <LogOut className="w-4 h-4 mr-2" /> Log Out
+            </Button>
           </div>
 
           <div className="border-t" />
 
-          {/* Delete character */}
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-medium">Delete Character</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Permanently delete all progress. Cannot be undone.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Permanently delete all progress. Cannot be undone.
+              </p>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -365,7 +431,10 @@ export default function CharacterPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="min-h-[44px]">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAccount} className="min-h-[44px] bg-destructive hover:bg-destructive/90">
+                  <AlertDialogAction
+                    onClick={handleDeleteAccount}
+                    className="min-h-[44px] bg-destructive hover:bg-destructive/90"
+                  >
                     Yes, Delete Forever
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -375,7 +444,6 @@ export default function CharacterPage() {
         </CardContent>
       </Card>
 
-      {/* Hidden export card */}
       <div
         id="profile-export-card"
         className="hidden fixed top-0 left-0 w-96 p-8 bg-gradient-to-br from-primary/10 via-accent/10 to-background"
@@ -386,7 +454,6 @@ export default function CharacterPage() {
         }}
       >
         <div className="space-y-4 text-gray-900">
-          {/* Header */}
           <div className="text-center border-b border-gray-300 pb-4">
             <p className="text-sm font-medium text-gray-600">CHARACTER CARD</p>
             <h2 className="text-3xl font-bold mt-1" style={{ fontFamily: "Space Grotesk" }}>
@@ -394,11 +461,12 @@ export default function CharacterPage() {
             </h2>
           </div>
 
-          {/* Core Stats */}
           <div className="space-y-2">
             <div className="flex justify-between items-center border-b border-gray-200 pb-2">
               <span className="text-sm font-medium">Class</span>
-              <span className="text-lg">{currentJob.icon} {currentJob.name}</span>
+              <span className="text-lg">
+                {currentJob.icon} {currentJob.name}
+              </span>
             </div>
             <div className="flex justify-between items-center border-b border-gray-200 pb-2">
               <span className="text-sm font-medium">Level</span>
@@ -418,12 +486,11 @@ export default function CharacterPage() {
             </div>
           </div>
 
-          {/* Equipped Items */}
           {equippedCount > 0 && (
             <div className="space-y-2 border-t border-gray-300 pt-3">
               <p className="text-sm font-semibold">⚔️ Equipped Items</p>
               <div className="space-y-1">
-                {EQUIPMENT.filter(e => character.equipped_items?.includes(e.id)).map(item => (
+                {EQUIPMENT.filter((e) => character.equipped_items?.includes(e.id)).map((item) => (
                   <div key={item.id} className="text-xs flex items-center gap-2">
                     <span>{item.icon}</span>
                     <span className="font-medium">{item.name}</span>
@@ -433,7 +500,6 @@ export default function CharacterPage() {
             </div>
           )}
 
-          {/* Footer */}
           <div className="text-center border-t border-gray-300 pt-3 text-[10px] text-gray-600">
             <p>Salt & Light - Character Profile</p>
             <p>{new Date().toLocaleDateString()}</p>

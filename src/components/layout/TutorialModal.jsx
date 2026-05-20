@@ -40,28 +40,55 @@ const sections = [
     )
   },
   {
-    emoji: "📆",
-    title: "Goal Calendar",
-    color: "from-accent/10 to-yellow-500/10",
-    content: (
-      <div className="space-y-3 text-sm leading-relaxed">
-        <p className="text-muted-foreground text-xs">Calendar view shows goals like <strong className="text-foreground">GitHub's activity graph</strong>.</p>
-        <div className="space-y-2">
-          {[
-            { color: "rgba(161,98,7,0.4)", label: "Yellow", desc: "= active goals. Darker = more goals." },
-            { color: "rgba(22,101,52,0.55)", label: "Green", desc: "= completed goals. Stronger = more completions." },
-            { color: "linear-gradient(135deg, hsl(143,64%,24%) 0%, hsl(143,64%,38%) 100%)", label: "Gradient", desc: "= today's date." },
-          ].map(l => (
-            <div key={l.label} className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded flex-shrink-0" style={{ background: l.color }} />
-              <p className="text-xs text-muted-foreground"><strong className="text-foreground">{l.label}</strong> {l.desc}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">Tap any day to view goals. Copy goals forward to the next day, rest of week, or month.</p>
+  emoji: "📆",
+  title: "Goal Calendar",
+  color: "from-accent/10 to-yellow-500/10",
+  content: (
+    <div className="space-y-3 text-sm leading-relaxed">
+      <p className="text-muted-foreground text-xs">
+        The calendar gives a quick view of your progress across the month, so you can see completed goals at a glance.
+      </p>
+
+      <div className="space-y-2">
+        {[
+          {
+            color: "hsl(var(--primary))",
+            label: "Completed",
+            desc: "Goal finished on that day.",
+          },
+          {
+            color: "transparent",
+            border: "2px solid hsl(var(--primary) / 0.4)",
+            label: "Today",
+            desc: "Current day on the calendar.",
+          },
+          {
+            color: "hsl(var(--muted))",
+            label: "Past / future",
+            desc: "Not completed yet or unavailable.",
+          },
+        ].map((l) => (
+          <div key={l.label} className="flex items-center gap-2">
+            <div
+              className="w-5 h-5 rounded flex-shrink-0"
+              style={{
+                background: l.color,
+                border: l.border || "none",
+              }}
+            />
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">{l.label}</strong> {l.desc}
+            </p>
+          </div>
+        ))}
       </div>
-    )
-  },
+
+      <p className="text-xs text-muted-foreground">
+        Tap any day to view goals. Copy goals forward to another day when needed.
+      </p>
+    </div>
+  ),
+},
   {
     emoji: "⚡",
     title: "XP & Leveling Up",
