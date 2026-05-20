@@ -92,7 +92,7 @@ export default function AppLayout() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <span className="text-white text-sm font-bold">⚡</span>
             </div>
-            <span className="font-display font-bold text-lg">QuestLog</span>
+            <span className="font-display font-bold text-lg">Salt &amp; Light</span>
           </Link>
 
           <nav className="flex items-center gap-1">
