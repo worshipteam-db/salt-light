@@ -102,10 +102,7 @@ export function useCharacter() {
         equipped_items: uniqArray(character.equipped_items),
         unlocked_skills: uniqArray(character.unlocked_skills),
         earned_achievements: uniqArray(character.earned_achievements),
-        job_history: uniqArray([
-          ...(character.job_history || []),
-          character.current_job || "seeker",
-        ]),
+        job_history: uniqArray(character.job_history),
         current_job: character.current_job || "seeker",
         faith: character.faith || 0,
         skill_points: character.skill_points || 0,
@@ -124,10 +121,7 @@ export function useCharacter() {
     const nextEarned = uniqArray(achievementState.earnedIds);
 
     const currentHistory = uniqArray(character.job_history);
-    const nextHistory = uniqArray([
-      ...(character.job_history || []),
-      character.current_job || "seeker",
-    ]);
+    const nextHistory = uniqArray(character.job_history);
 
     const achievementsChanged = !sameStringSet(currentEarned, nextEarned);
     const historyChanged = !sameStringSet(currentHistory, nextHistory);
@@ -142,10 +136,6 @@ export function useCharacter() {
 
         if (achievementsChanged) {
           payload.earned_achievements = nextEarned;
-        }
-
-        if (historyChanged) {
-          payload.job_history = nextHistory;
         }
 
         if (Object.keys(payload).length > 0) {
@@ -191,10 +181,13 @@ export function useCharacter() {
     syncAchievements();
   }, [achievementState, character, isLoading, queryClient]);
 
-  // ── CREATE ────────────────────────────────────────────────────────────────
   const createCharacter = useMutation({
-    mutationFn: (name) =>
-      db.entities.Character.create({
+    mutationFn: async (name) => {
+      const user = await db.auth.me();
+
+      return db.entities.Character.create({
+        user_id: user.id,
+        created_by: user.email,
         name,
         level: 1,
         xp: 0,
@@ -204,20 +197,18 @@ export function useCharacter() {
         skill_points: 1,
         total_skill_points: 1,
         current_job: "seeker",
-        job_history: ["seeker"],
         goals_completed: 0,
         equipped_items: ["wooden_sword"],
         unlocked_items: ["wooden_sword"],
         unlocked_skills: [],
-        earned_achievements: [],
-      }),
+      });
+    },
     onSuccess: (newChar) => {
       queryClient.setQueryData(["character"], [newChar]);
       queryClient.invalidateQueries({ queryKey: ["character"] });
     },
   });
 
-  // ── ADD XP ────────────────────────────────────────────────────────────────
   const addXP = useMutation({
     mutationFn: async (amount) => {
       const oldTotal = character.total_xp || 0;
@@ -296,7 +287,6 @@ export function useCharacter() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
 
-  // ── ADD FAITH ─────────────────────────────────────────────────────────────
   const addFaith = useMutation({
     mutationFn: async (amount) => {
       return db.entities.Character.update(character.id, {
@@ -327,7 +317,6 @@ export function useCharacter() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
 
-  // ── EQUIP TOGGLE (max 6) ──────────────────────────────────────────────────
   const toggleEquip = useMutation({
     mutationFn: async (itemId) => {
       const current = character.equipped_items || [];
@@ -372,7 +361,6 @@ export function useCharacter() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
 
-  // ── BUY EQUIPMENT ─────────────────────────────────────────────────────────
   const buyEquipment = useMutation({
     mutationFn: async ({ itemId, xpCost, faithCost, itemName }) => {
       const newUnlocked = [...(character.unlocked_items || []), itemId];
@@ -411,7 +399,6 @@ export function useCharacter() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
 
-  // ── UNLOCK SKILL ─────────────────────────────────────────────────────────
   const unlockSkill = useMutation({
     mutationFn: async ({ skillId, cost }) => {
       const newSkills = [...(character.unlocked_skills || []), skillId];
@@ -443,20 +430,58 @@ export function useCharacter() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
 
-  // ── CHANGE JOB (records job history and clears equipped items) ────────────
   const changeJob = useMutation({
     mutationFn: async (jobId) => {
-      const normalizedHistory = uniqArray([
-        ...(character.job_history || []),
+      const currentHistory = uniqArray(character.job_history);
+      const nextHistory = uniqArray([
+        ...currentHistory,
         character.current_job || "seeker",
         jobId,
       ]);
 
-      return db.entities.Character.update(character.id, {
+      const updated = await db.entities.Character.update(character.id, {
         current_job: jobId,
-        job_history: normalizedHistory,
         equipped_items: [],
       });
+
+      try {
+        await db.entities.Character.update(character.id, {
+          job_history: nextHistory,
+        });
+      } catch (historyError) {
+        console.warn("Job history update skipped:", historyError);
+      }
+
+      await logActivity({
+        action_type: "job_changed",
+        source: `Job Changed: ${jobId}`,
+        amount: 0,
+        base_amount: 0,
+        modifiers: `Switched to ${jobId}`,
+        icon: "🗺️",
+      });
+
+      return updated;
+    },
+    onMutate: async (jobId) => {
+      await queryClient.cancelQueries({ queryKey: ["character"] });
+      const previous = queryClient.getQueryData(["character"]);
+
+      queryClient.setQueryData(["character"], (old = []) => {
+        if (!old[0]) return old;
+        return [
+          {
+            ...old[0],
+            current_job: jobId,
+            equipped_items: [],
+          },
+        ];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _jobId, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(["character"], ctx.previous);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["character"] }),
   });
