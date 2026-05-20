@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import db from "@/api/base44Client";
+import { Eye, EyeOff } from "lucide-react";
 
 const RESET_PENDING_KEY = "salt_light_password_reset_pending_email";
 
@@ -27,6 +28,45 @@ async function requestPasswordReset(authClient, email, redirectTo) {
   throw new Error("Password reset is not supported by this auth client.");
 }
 
+function PasswordInput({
+  label,
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+  isSubmitting,
+  visible,
+  onToggleVisible,
+  required = true,
+}) {
+  return (
+    <div>
+      <label className="block text-sm mb-1">{label}</label>
+      <div className="relative">
+        <input
+          className="w-full rounded-lg border px-3 py-2 pr-12 bg-background"
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={onChange}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          required={required}
+          disabled={isSubmitting}
+        />
+        <button
+          type="button"
+          onClick={onToggleVisible}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:text-foreground"
+          aria-label={visible ? "Hide password" : "Show password"}
+          disabled={isSubmitting}
+        >
+          {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const { signIn, signUp, user, loading } = useAuth();
   const navigate = useNavigate();
@@ -47,22 +87,22 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const authClient = db?.auth;
 
   useEffect(() => {
     if (isResetRoute) {
       setMode("reset");
-      setMessage(
-        "Open the email link, then choose a new password here."
-      );
+      setMessage("Open the email link, then choose a new password here.");
 
       const storedEmail = localStorage.getItem(RESET_PENDING_KEY);
       if (storedEmail && !email) {
         setEmail(storedEmail);
       }
     }
-  }, [isResetRoute]);
+  }, [isResetRoute, email]);
 
   useEffect(() => {
     const isResetFlow = mode === "reset" || isResetRoute;
@@ -87,6 +127,10 @@ export default function LoginPage() {
       }
 
       if (mode === "signup") {
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match.");
+        }
+
         const { data, error } = await signUp(email, password);
         if (error) throw error;
 
@@ -156,8 +200,6 @@ export default function LoginPage() {
     }
   }
 
-  const isResetFlow = mode === "reset" || isResetRoute;
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-md rounded-2xl border p-6 shadow-sm bg-card">
@@ -187,74 +229,88 @@ export default function LoginPage() {
           )}
 
           {mode === "login" && (
-            <div>
-              <label className="block text-sm mb-1">Password</label>
-              <input
-                className="w-full rounded-lg border px-3 py-2 bg-background"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                className="mt-2 text-xs underline text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setError("");
-                  setMessage("");
-                  setMode("forgot");
-                }}
-                disabled={isSubmitting}
-              >
-                Forgot password?
-              </button>
-            </div>
+            <PasswordInput
+              label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              isSubmitting={isSubmitting}
+              visible={showPassword}
+              onToggleVisible={() => setShowPassword((v) => !v)}
+            />
           )}
 
           {mode === "signup" && (
-            <div>
-              <label className="block text-sm mb-1">Password</label>
-              <input
-                className="w-full rounded-lg border px-3 py-2 bg-background"
-                type="password"
+            <>
+              <PasswordInput
+                label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
-                required
-                disabled={isSubmitting}
+                placeholder="Create a password"
+                isSubmitting={isSubmitting}
+                visible={showPassword}
+                onToggleVisible={() => setShowPassword((v) => !v)}
               />
-            </div>
+
+              <PasswordInput
+                label="Confirm password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                isSubmitting={isSubmitting}
+                visible={showConfirmPassword}
+                onToggleVisible={() => setShowConfirmPassword((v) => !v)}
+              />
+            </>
+          )}
+
+          {mode === "login" && (
+            <button
+              type="button"
+              className="mt-2 text-xs underline text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setError("");
+                setMessage("");
+                setMode("forgot");
+              }}
+              disabled={isSubmitting}
+            >
+              Forgot password?
+            </button>
+          )}
+
+          {mode === "forgot" && (
+            <p className="text-xs text-muted-foreground">
+              We will send a reset link to your email.
+            </p>
           )}
 
           {mode === "reset" && (
             <>
-              <div>
-                <label className="block text-sm mb-1">New password</label>
-                <input
-                  className="w-full rounded-lg border px-3 py-2 bg-background"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
+              <PasswordInput
+                label="New password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Enter a new password"
+                isSubmitting={isSubmitting}
+                visible={showPassword}
+                onToggleVisible={() => setShowPassword((v) => !v)}
+              />
 
-              <div>
-                <label className="block text-sm mb-1">Confirm new password</label>
-                <input
-                  className="w-full rounded-lg border px-3 py-2 bg-background"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  autoComplete="new-password"
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
+              <PasswordInput
+                label="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Re-enter your new password"
+                isSubmitting={isSubmitting}
+                visible={showConfirmPassword}
+                onToggleVisible={() => setShowConfirmPassword((v) => !v)}
+              />
 
               <p className="text-xs text-muted-foreground">
                 {user
@@ -293,6 +349,10 @@ export default function LoginPage() {
                 setMode(mode === "login" ? "signup" : "login");
                 setError("");
                 setMessage("");
+                setPassword("");
+                setConfirmPassword("");
+                setShowPassword(false);
+                setShowConfirmPassword(false);
               }}
               disabled={isSubmitting}
             >
