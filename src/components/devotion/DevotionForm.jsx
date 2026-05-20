@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Sparkles, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { BookOpen, Sparkles, X, ChevronDown, ChevronUp } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { BIBLE_BOOKS } from "@/lib/bibleData";
 
@@ -17,6 +17,11 @@ export default function DevotionForm({
   initialNotes = "",
 }) {
   const [notes, setNotes] = useState(initialNotes);
+  const [showPreview, setShowPreview] = useState(true);
+  const [passagePreview, setPassagePreview] = useState("");
+  const [passageLoading, setPassageLoading] = useState(false);
+  const [passageError, setPassageError] = useState("");
+
   const today = format(new Date(), "MMMM d, yyyy");
 
   const parseInitialVerse = () => {
@@ -74,20 +79,95 @@ export default function DevotionForm({
 
   const verseOptions = verseCount > 0 ? Array.from({ length: verseCount }, (_, i) => i + 1) : [];
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchPassage() {
+      if (!verse) {
+        setPassagePreview("");
+        setPassageError("");
+        setPassageLoading(false);
+        return;
+      }
+
+      const apiKey = import.meta.env.VITE_API_BIBLE_KEY;
+      const bibleId = import.meta.env.VITE_NLT_BIBLE_ID;
+
+      if (!apiKey || !bibleId) {
+        setPassagePreview("");
+        setPassageError("Missing API.Bible environment variables.");
+        setPassageLoading(false);
+        return;
+      }
+
+      setPassageLoading(true);
+      setPassageError("");
+
+      try {
+        const url = new URL(`https://rest.api.bible/v1/bibles/${bibleId}/search`);
+        url.searchParams.set("query", verse);
+        url.searchParams.set("content-type", "html");
+
+        const res = await fetch(url.toString(), {
+          headers: {
+            "api-key": apiKey,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Passage lookup failed (${res.status})`);
+        }
+
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        const text =
+          data?.data?.passages?.[0]?.content ||
+          data?.data?.passages?.[0]?.text ||
+          data?.data?.verses?.[0]?.content ||
+          data?.data?.verses?.[0]?.text ||
+          "";
+
+        setPassagePreview(text || "No passage text returned.");
+      } catch (err) {
+        if (!cancelled) {
+          setPassagePreview("");
+          setPassageError(err?.message || "Could not load passage.");
+        }
+      } finally {
+        if (!cancelled) setPassageLoading(false);
+      }
+    }
+
+    const timer = setTimeout(fetchPassage, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [verse]);
+
+  const formattedPassage = passagePreview.replace(
+  /<span[^>]*class="v"[^>]*>(\d+)<\/span>/g,
+  '<span class="font-semibold text-primary mr-2 inline-block min-w-[1.25rem]">$1</span>'
+);
+
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="border-primary/20">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <CardTitle className="font-display flex items-center gap-2 text-lg">
               <BookOpen className="w-5 h-5 text-primary" />
               {isEditing ? "Edit Devotion" : "Today's Devotion"}
             </CardTitle>
-            {onCancel && (
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
-                <X className="w-4 h-4" />
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {onCancel && (
+                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">{today}</p>
         </CardHeader>
@@ -150,33 +230,76 @@ export default function DevotionForm({
                     <>
                       <span className="text-sm text-muted-foreground shrink-0">to (optional)</span>
                       <Select
-  value={verseEnd || "__none__"}
-  onValueChange={(v) => setVerseEnd(v === "__none__" ? "" : v)}
->
-  <SelectTrigger className="flex-1">
-    <SelectValue placeholder="End verse" />
-  </SelectTrigger>
-  <SelectContent className="max-h-48">
-    <SelectItem value="__none__">—</SelectItem>
-    {verseOptions
-      .filter((v) => v > parseInt(verseStart))
-      .map((v) => (
-        <SelectItem key={v} value={String(v)}>
-          v. {v}
-        </SelectItem>
-      ))}
-  </SelectContent>
-</Select>
+                        value={verseEnd || "__none__"}
+                        onValueChange={(v) => setVerseEnd(v === "__none__" ? "" : v)}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="End verse" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-48">
+                          <SelectItem value="__none__">—</SelectItem>
+                          {verseOptions
+                            .filter((v) => v > parseInt(verseStart))
+                            .map((v) => (
+                              <SelectItem key={v} value={String(v)}>
+                                v. {v}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </>
                   )}
                 </div>
               )}
 
-              {verse && (
-                <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-sm font-medium text-primary">
-                  📖 {verse}
-                </div>
-              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full justify-between"
+                onClick={() => setShowPreview((s) => !s)}
+                disabled={!verse}
+              >
+                <span className="flex items-center gap-2">
+                  {showPreview ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showPreview ? "Hide Passage Preview" : "Show Passage Preview"}
+                </span>
+                <span className="text-xs text-muted-foreground">NLT</span>
+              </Button>
+
+              <AnimatePresence>
+                {showPreview && verse && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -6, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="rounded-xl border bg-muted/20 p-4 space-y-2">
+                      <p className="text-sm font-semibold text-foreground">Selected Passage</p>
+
+                      <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-medium flex-wrap">
+                        📖 {verse}
+                      </div>
+
+                      {passageLoading ? (
+                        <p className="text-sm text-muted-foreground">Loading passage...</p>
+                      ) : passageError ? (
+                        <p className="text-sm text-red-600">{passageError}</p>
+                      ) : (
+                       <div className="rounded-xl border bg-muted/20 p-4">
+  <div
+    className="prose prose-slate max-w-none text-sm leading-7 text-justify"
+    dangerouslySetInnerHTML={{
+      __html: formattedPassage || "<p>Passage preview will appear here.</p>",
+    }}
+  />
+</div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="space-y-2">
