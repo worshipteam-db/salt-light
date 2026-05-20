@@ -1,7 +1,7 @@
 import db from "@/api/base44Client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useCharacter } from "@/lib/useCharacter";
-import { getJobById } from "@/lib/gameData";
+import { getJobById, getTitle } from "@/lib/gameData";
 import CharacterAvatar from "@/components/character/CharacterAvatar";
 import CharacterSetup from "@/components/character/CharacterSetup";
 import XPBar from "@/components/character/XPBar";
@@ -47,8 +47,6 @@ import {
   LogOut,
   Pencil,
   Download,
-  BadgeCheck,
-  ArrowRight,
 } from "lucide-react";
 import { EQUIPMENT, SKILLS } from "@/lib/gameData";
 import { motion } from "framer-motion";
@@ -64,6 +62,14 @@ function StatBox({ icon: Icon, label, value, color = "text-primary" }) {
       <p className="font-display font-bold text-lg leading-none">{value}</p>
       <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
     </div>
+  );
+}
+
+function ExportSectionTitle({ children }) {
+  return (
+    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+      {children}
+    </p>
   );
 }
 
@@ -86,12 +92,14 @@ export default function CharacterPage() {
 
   const queryClient = useQueryClient();
   const { signOut } = useAuth();
+  const exportRef = useRef(null);
 
   const [deleting, setDeleting] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState("");
   const [isDark, setIsDark] = useState(() =>
-    typeof window !== "undefined" && document.documentElement.classList.contains("dark")
+    typeof window !== "undefined" &&
+    document.documentElement.classList.contains("dark")
   );
 
   const toggleTheme = () => {
@@ -127,7 +135,7 @@ export default function CharacterPage() {
 
   const exportProfileCard = async () => {
     const html2canvas = (await import("html2canvas")).default;
-    const element = document.getElementById("profile-export-card");
+    const element = exportRef.current;
     if (!element) return;
 
     try {
@@ -135,13 +143,15 @@ export default function CharacterPage() {
         scale: 2,
         backgroundColor: "#ffffff",
         logging: false,
+        useCORS: true,
       });
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
       link.download = `${character.name}-profile.png`;
       link.click();
       toast.success("Profile card downloaded!");
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Failed to export profile");
     }
   };
@@ -158,13 +168,16 @@ export default function CharacterPage() {
 
   const currentJob = getJobById(character.current_job || "seeker");
   const equippedCount = character.equipped_items?.length || 0;
+  const title = getTitle(levelInfo.level);
 
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Character</h1>
-          <p className="text-sm text-muted-foreground">Level up, equip, and advance your path</p>
+          <p className="text-sm text-muted-foreground">
+            Level up, equip, and advance your path
+          </p>
         </div>
         <Button
           variant="outline"
@@ -187,7 +200,9 @@ export default function CharacterPage() {
                 <span className="text-xl mt-0.5">{currentJob.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-display font-bold text-base leading-none">{character.name}</p>
+                    <p className="font-display font-bold text-base leading-none">
+                      {character.name}
+                    </p>
                     <Dialog open={renaming} onOpenChange={setRenaming}>
                       <button
                         onClick={() => {
@@ -203,7 +218,9 @@ export default function CharacterPage() {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Rename Character</DialogTitle>
-                          <DialogDescription>Enter a new name for your character</DialogDescription>
+                          <DialogDescription>
+                            Enter a new name for your character
+                          </DialogDescription>
                         </DialogHeader>
                         <Input
                           value={newName}
@@ -246,25 +263,49 @@ export default function CharacterPage() {
               />
 
               <div className="grid grid-cols-3 gap-2">
-                <StatBox icon={Trophy} label="Goals Done" value={character.goals_completed || 0} color="text-accent" />
-                <StatBox icon={Zap} label="Total XP" value={character.total_xp || 0} color="text-chart-2" />
-                <StatBox icon={BookOpen} label="Faith" value={character.faith || 0} color="text-primary" />
-                <StatBox icon={Sparkles} label="Skill Pts" value={character.skill_points || 0} color="text-chart-4" />
+                <StatBox
+                  icon={Trophy}
+                  label="Goals Done"
+                  value={character.goals_completed || 0}
+                  color="text-accent"
+                />
+                <StatBox
+                  icon={Zap}
+                  label="Total XP"
+                  value={character.total_xp || 0}
+                  color="text-chart-2"
+                />
+                <StatBox
+                  icon={BookOpen}
+                  label="Faith"
+                  value={character.faith || 0}
+                  color="text-primary"
+                />
+                <StatBox
+                  icon={Sparkles}
+                  label="Skill Pts"
+                  value={character.skill_points || 0}
+                  color="text-chart-4"
+                />
                 <StatBox
                   icon={Swords}
                   label="Equipped"
                   value={`${equippedCount}/${MAX_EQUIPPED}`}
                   color="text-chart-3"
                 />
-                <StatBox icon={Flame} label="Total Faith" value={character.total_faith || 0} color="text-orange-500" />
+                <StatBox
+                  icon={Flame}
+                  label="Total Faith"
+                  value={character.total_faith || 0}
+                  color="text-orange-500"
+                />
               </div>
 
-              {/* Achievements summary */}
               <Card className="bg-muted/30 border-dashed">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2">
-                      <BadgeCheck className="w-4 h-4 text-primary mt-0.5" />
+                      <div className="w-4 h-4 mt-0.5 text-primary">🏅</div>
                       <div>
                         <p className="text-sm font-semibold">Achievements</p>
                         <p className="text-xs text-muted-foreground">
@@ -289,9 +330,7 @@ export default function CharacterPage() {
                       Track milestones for level, devotion, equipment, skills, and job progress.
                     </p>
                     <Button asChild variant="outline" size="sm" className="shrink-0 min-h-[44px]">
-                      <Link to="/achievements">
-                        View <ArrowRight className="w-4 h-4 ml-1" />
-                      </Link>
+                      <Link to="/achievements">View</Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -400,7 +439,6 @@ export default function CharacterPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Appearance */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="font-display text-base">Appearance</CardTitle>
@@ -503,65 +541,244 @@ export default function CharacterPage() {
         </CardContent>
       </Card>
 
+      {/* Export-only profile card */}
       <div
-        id="profile-export-card"
-        className="hidden fixed top-0 left-0 w-96 p-8 bg-gradient-to-br from-primary/10 via-accent/10 to-background"
+        ref={exportRef}
+        className="fixed -left-[99999px] top-0 w-[1480px] p-8 bg-[#f7f6f1]"
         style={{
-          backgroundColor: "#f9f7f2",
-          border: "2px solid #4a7c59",
-          borderRadius: "16px",
+          border: "2px solid #dfddd4",
+          borderRadius: "24px",
+          pointerEvents: "none",
         }}
       >
-        <div className="space-y-4 text-gray-900">
-          <div className="text-center border-b border-gray-300 pb-4">
-            <p className="text-sm font-medium text-gray-600">CHARACTER CARD</p>
-            <h2 className="text-3xl font-bold mt-1" style={{ fontFamily: "Space Grotesk" }}>
-              {character.name}
-            </h2>
+        <div className="flex gap-8">
+          {/* Left profile column */}
+          <div className="w-[320px] shrink-0">
+            <div className="h-full rounded-[28px] border border-[#d9d7ce] bg-gradient-to-b from-white via-[#f7f5ef] to-[#efe9dc] p-5 shadow-sm">
+              <div className="text-center">
+                <div className="inline-flex items-center rounded-full border border-[#d7d5ca] bg-white px-3 py-1 text-[12px] font-semibold text-[#6c6f7d] shadow-sm">
+                  {currentJob.name}
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center">
+                <div className="h-[230px] w-[230px] rounded-[28px] border border-[#d7d5ca] bg-white/70 flex items-center justify-center shadow-inner">
+                  <CharacterAvatar character={character} size="xl" />
+                </div>
+              </div>
+
+              <div className="mt-5 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-[34px] font-extrabold leading-none tracking-tight text-[#1d2230]">
+                    {character.name}
+                  </h2>
+                  <Pencil className="w-5 h-5 text-[#7e8394] opacity-80" />
+                </div>
+
+                <p className="mt-2 text-[14px] font-medium text-[#6f7384]">
+                  {title}
+                </p>
+
+                {currentJob.bonuses?.length > 0 && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {currentJob.bonuses.slice(0, 3).map((b, i) => (
+                      <span
+                        key={i}
+                        className="rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-[#2b6f3d] border border-[#dfe6d8]"
+                      >
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-[#dedbd1] bg-white p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a8e9d]">
+                    Level
+                  </p>
+                  <p className="mt-1 text-2xl font-bold text-[#1d2230]">
+                    {levelInfo.level}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-[#dedbd1] bg-white p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#8a8e9d]">
+                    Title
+                  </p>
+                  <p className="mt-1 text-xl font-bold text-[#1d2230]">
+                    {title}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="text-sm font-medium">Class</span>
-              <span className="text-lg">
-                {currentJob.icon} {currentJob.name}
-              </span>
-            </div>
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="text-sm font-medium">Level</span>
-              <span className="text-2xl font-bold text-primary">{levelInfo.level}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="text-sm font-medium">Total XP</span>
-              <span className="font-semibold">{character.total_xp || 0}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="text-sm font-medium">Faith</span>
-              <span className="font-semibold">{character.faith || 0}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-gray-200 pb-2">
-              <span className="text-sm font-medium">Goals Completed</span>
-              <span className="font-semibold">{character.goals_completed || 0}</span>
-            </div>
-          </div>
+          {/* Main content */}
+          <div className="flex-1 space-y-5">
+            {/* Header */}
+            <div className="rounded-[28px] border border-[#dedbd1] bg-white/90 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7f8393]">
+                    Character Profile
+                  </p>
+                  <h3 className="mt-2 text-4xl font-extrabold tracking-tight text-[#1d2230]">
+                    {character.name}
+                  </h3>
+                  <p className="mt-2 text-sm text-[#6f7384]">
+                    {currentJob.icon} {currentJob.name}
+                  </p>
+                </div>
 
-          {equippedCount > 0 && (
-            <div className="space-y-2 border-t border-gray-300 pt-3">
-              <p className="text-sm font-semibold">⚔️ Equipped Items</p>
-              <div className="space-y-1">
+                <div className="text-right">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7f8393]">
+                    Progress
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-[#1d2230]">
+                    {levelInfo.currentXP} / {levelInfo.neededXP} XP
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-semibold text-[#2c6f3e]">Level {levelInfo.level}</span>
+                  <span className="text-[#6f7384]">{character.total_xp || 0} total XP</span>
+                </div>
+
+                <div className="h-4 rounded-full bg-[#eef0ea] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#2a7a43] via-[#7f9827] to-[#f6b731]"
+                    style={{
+                      width: `${Math.max(
+                        8,
+                        Math.min(100, (levelInfo.currentXP / Math.max(levelInfo.neededXP, 1)) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <Trophy className="mx-auto h-5 w-5 text-[#f4b000]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {character.goals_completed || 0}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Goals Done</p>
+              </div>
+
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <Zap className="mx-auto h-5 w-5 text-[#f4b000]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {character.total_xp || 0}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Total XP</p>
+              </div>
+
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <BookOpen className="mx-auto h-5 w-5 text-[#2c7a3f]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {character.faith || 0}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Faith</p>
+              </div>
+
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <Sparkles className="mx-auto h-5 w-5 text-[#ff4f88]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {character.skill_points || 0}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Skill Pts</p>
+              </div>
+
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <Swords className="mx-auto h-5 w-5 text-[#1ea97f]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {equippedCount}/{MAX_EQUIPPED}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Equipped</p>
+              </div>
+
+              <div className="rounded-[24px] border border-[#dedbd1] bg-white p-4 text-center shadow-sm">
+                <Flame className="mx-auto h-5 w-5 text-[#f27128]" />
+                <p className="mt-2 text-3xl font-extrabold text-[#1d2230]">
+                  {character.total_faith || 0}
+                </p>
+                <p className="mt-1 text-sm text-[#6f7384]">Total Faith</p>
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div className="rounded-[28px] border border-dashed border-[#d9d7ce] bg-white/80 p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏅</span>
+                    <h4 className="text-2xl font-extrabold text-[#1d2230]">
+                      Achievements
+                    </h4>
+                  </div>
+                  <p className="mt-1 text-sm text-[#6f7384]">
+                    {achievementUnlockedCount}/{achievementTotalCount} unlocked
+                  </p>
+                </div>
+
+                <p className="text-2xl font-extrabold text-[#2c6f3e]">
+                  {achievementCompletionPercent}%
+                </p>
+              </div>
+
+              <div className="mt-5 h-3 rounded-full bg-[#eef0ea] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#2c6f3e]"
+                  style={{ width: `${achievementCompletionPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Equipment */}
+            <div className="rounded-[28px] border border-[#dedbd1] bg-white/90 p-6 shadow-sm">
+              <ExportSectionTitle>Equipped Items</ExportSectionTitle>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 {EQUIPMENT.filter((e) => character.equipped_items?.includes(e.id)).map((item) => (
-                  <div key={item.id} className="text-xs flex items-center gap-2">
-                    <span>{item.icon}</span>
-                    <span className="font-medium">{item.name}</span>
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-[#e1ded4] bg-[#fbfaf7] p-3"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white border border-[#e2dfd5]">
+                        <span className="text-lg">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-[#1d2230]">{item.name}</p>
+                        <p className="mt-0.5 text-xs text-[#6f7384]">
+                          {item.type}
+                        </p>
+                        <p
+                          className={`mt-1 text-sm ${
+                            item.passive ? "text-[#2c6f3e]" : "text-[#7e8394] italic"
+                          }`}
+                        >
+                          {item.passive || "No passive"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          <div className="text-center border-t border-gray-300 pt-3 text-[10px] text-gray-600">
-            <p>Salt & Light - Character Profile</p>
-            <p>{new Date().toLocaleDateString()}</p>
+            {/* Footer line */}
+            <div className="text-center text-[10px] text-[#7a7e8d]">
+              <p>Salt &amp; Light • Character Profile</p>
+              <p className="mt-1">{new Date().toLocaleDateString()}</p>
+            </div>
           </div>
         </div>
       </div>

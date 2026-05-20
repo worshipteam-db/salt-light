@@ -176,6 +176,20 @@ export default function AppLayout() {
         </AnimatePresence>
       </main>
 
+     {/* Footer */}
+<footer className="pb-20 sm:pb-4">
+  <div className="max-w-5xl mx-auto px-4 py-3 text-center text-muted-foreground/60">
+    <p className="text-[10px] sm:text-xs leading-relaxed">
+      © 2026 Salt &amp; Light • Life City Church of Christ
+    </p>
+
+    <p className="text-[10px] italic mt-1 opacity-70">
+      “So whether you eat or drink or whatever you do, do it all for the glory of God.”
+      — 1 Corinthians 10:31
+    </p>
+  </div>
+</footer>
+
       {/* Mobile bottom nav */}
       <nav
         className="sm:hidden select-none fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t"
